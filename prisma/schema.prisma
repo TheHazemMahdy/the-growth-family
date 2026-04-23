@@ -1,0 +1,54 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                Int       @id @default(autoincrement())
+  username          String    @unique
+  email             String    @unique
+  password          String
+  role              String    @default("user") // "user" or "admin"
+  xp                Int       @default(0)
+  level             Int       @default(1)
+  image             String?
+  emailVerified     DateTime?
+  verificationToken String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  scores            Score[]
+}
+
+model Score {
+  id        Int      @id @default(autoincrement())
+  score     Int
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model Link {
+  id         Int      @id @default(autoincrement())
+  title      String
+  desc       String?
+  icon       String
+  url        String
+  isInternal Boolean  @default(false)
+  order      Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Ad {
+  id        Int      @id @default(autoincrement())
+  name      String
+  code      String
+  position  String   @default("banner") // "banner", "rectangle", etc.
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
