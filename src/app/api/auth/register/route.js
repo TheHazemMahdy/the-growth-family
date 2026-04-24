@@ -3,6 +3,17 @@ import { prisma } from '../../../../lib/prisma';
 import bcrypt from 'bcryptjs';
 import nodemailer from 'nodemailer';
 
+function getBaseUrl(request) {
+  // Use NEXTAUTH_URL if set (most reliable for production)
+  if (process.env.NEXTAUTH_URL) {
+    return process.env.NEXTAUTH_URL.replace(/\/$/, '');
+  }
+  // Fallback: detect from request headers
+  const proto = request.headers.get('x-forwarded-proto') || 'https';
+  const host = request.headers.get('x-forwarded-host') || request.headers.get('host') || 'localhost:3000';
+  return `${proto}://${host}`;
+}
+
 export async function POST(request) {
   try {
     const { email, username, password } = await request.json();
@@ -41,8 +52,9 @@ export async function POST(request) {
       }
     });
 
-    // Send verification email asynchronously
-    const verificationUrl = `http://localhost:3000/verify?token=${verificationToken}`;
+    // Build the verification URL dynamically
+    const baseUrl = getBaseUrl(request);
+    const verificationUrl = `${baseUrl}/verify?token=${verificationToken}`;
     
     const transporter = nodemailer.createTransport({
       service: 'gmail',
@@ -69,7 +81,13 @@ export async function POST(request) {
       `,
     };
 
-    transporter.sendMail(mailOptions).catch(console.error);
+    try {
+      await transporter.sendMail(mailOptions);
+      console.log(`Verification email sent to ${email}`);
+    } catch (emailError) {
+      console.error('Failed to send verification email:', emailError);
+      // User was created but email failed — still return success so they can retry
+    }
 
     return NextResponse.json({ message: 'User created. Please check your email to verify your account.' }, { status: 201 });
   } catch (error) {

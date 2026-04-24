@@ -8,7 +8,9 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-export const sendWelcomeEmail = async (toEmail, username) => {
+export const sendWelcomeEmail = async (toEmail, username, baseUrl) => {
+  const siteUrl = baseUrl || process.env.NEXTAUTH_URL || 'https://thegrowthfamily.uk';
+
   const mailOptions = {
     from: process.env.EMAIL_USER,
     to: toEmail,
@@ -20,7 +22,7 @@ export const sendWelcomeEmail = async (toEmail, username) => {
         <p>Hello <strong>${username}</strong>,</p>
         <p>We are thrilled to have you join our community. Play games, climb the leaderboard, and connect with other members.</p>
         <br/>
-        <a href="http://localhost:3000" style="display: inline-block; padding: 10px 20px; background-color: #5cb85c; color: white; text-decoration: none; border-radius: 5px;">Visit the Hub</a>
+        <a href="${siteUrl}" style="display: inline-block; padding: 10px 20px; background-color: #5cb85c; color: white; text-decoration: none; border-radius: 5px;">Visit the Hub</a>
         <br/><br/>
         <p>Best,<br/>The Growth Family Team</p>
       </div>
@@ -34,3 +36,4 @@ export const sendWelcomeEmail = async (toEmail, username) => {
     console.error('Error sending welcome email:', error);
   }
 };
+
