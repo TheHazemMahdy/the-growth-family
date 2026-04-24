@@ -12,45 +12,54 @@ export const authOptions = {
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          return null;
-        }
-
-        const user = await prisma.user.findFirst({
-          where: {
-            OR: [
-              { email: credentials.email },
-              { username: credentials.email }
-            ]
+        try {
+          if (!credentials?.email || !credentials?.password) {
+            return null;
           }
-        });
 
-        if (!user) {
-          return null;
+          const user = await prisma.user.findFirst({
+            where: {
+              OR: [
+                { email: credentials.email },
+                { username: credentials.email }
+              ]
+            }
+          });
+
+          // ✅ Prevent crashes
+          if (!user || !user.password) {
+            return null;
+          }
+
+          // ✅ Prevent crash (no throwing errors)
+          if (!user.emailVerified) {
+            return null;
+          }
+
+          const isPasswordValid = await bcrypt.compare(
+            credentials.password,
+            user.password
+          );
+
+          if (!isPasswordValid) {
+            return null;
+          }
+
+          return {
+            id: user.id + '',
+            name: user.username,
+            role: user.role,
+            image: user.image,
+          };
+
+        } catch (error) {
+          console.error("LOGIN ERROR:", error);
+          return null; // ✅ prevents 500 crash
         }
-
-        if (!user.emailVerified) {
-          throw new Error("Please verify your email before logging in.");
-        }
-
-        const isPasswordValid = await bcrypt.compare(
-          credentials.password,
-          user.password
-        );
-
-        if (!isPasswordValid) {
-          return null;
-        }
-
-        return {
-          id: user.id + '',
-          name: user.username,
-          role: user.role,
-          image: user.image,
-        };
       }
     })
   ],
+
   callbacks: {
     async jwt({ token, user, trigger, session }) {
       if (trigger === "update" && session?.image) {
@@ -64,6 +73,7 @@ export const authOptions = {
       }
       return token;
     },
+
     async session({ session, token }) {
       if (token) {
         session.user.id = token.id;
@@ -74,13 +84,16 @@ export const authOptions = {
       return session;
     }
   },
+
   session: {
     strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 days
+    maxAge: 30 * 24 * 60 * 60,
   },
+
   secret: process.env.NEXTAUTH_SECRET,
+
   pages: {
-    signIn: '/profile', // redirect to profile page for login
+    signIn: '/profile',
   }
 };
 
