@@ -11,7 +11,7 @@ export default function Home() {
   const [ads, setAds] = useState([]);
   const [isAdminMode, setIsAdminMode] = useState(false);
   const [loading, setLoading] = useState(true);
-  
+
   // Modal state for links
   const [showModal, setShowModal] = useState(false);
   const [newTitle, setNewTitle] = useState('');
@@ -58,7 +58,7 @@ export default function Home() {
 
   const handleDeleteLink = async (e, id) => {
     e.preventDefault();
-    if(confirm("Are you sure you want to delete this link?")) {
+    if (confirm("Are you sure you want to delete this link?")) {
       try {
         await fetch(`/api/links?id=${id}`, { method: 'DELETE' });
         fetchLinks();
@@ -70,7 +70,7 @@ export default function Home() {
 
   const handleDeleteAd = async (e, id) => {
     e.preventDefault();
-    if(confirm("Are you sure you want to delete this Ad?")) {
+    if (confirm("Are you sure you want to delete this Ad?")) {
       try {
         await fetch(`/api/ads?id=${id}`, { method: 'DELETE' });
         fetchAds();
@@ -150,17 +150,17 @@ export default function Home() {
 
   return (
     <div className={styles.main}>
-      
+
       {/* Dynamic Top Ads */}
       {topAds.map(ad => (
         <div key={ad.id} className={styles.adContainer} style={{ position: 'relative' }}>
           {isAdminMode && (
-             <button className={`${styles.iconBtn} ${styles.deleteBtn}`} style={{ position: 'absolute', top: 5, right: 5, zIndex: 10, background: 'white' }} onClick={(e) => handleDeleteAd(e, ad.id)}>🗑️</button>
+            <button className={`${styles.iconBtn} ${styles.deleteBtn}`} style={{ position: 'absolute', top: 5, right: 5, zIndex: 10, background: 'white' }} onClick={(e) => handleDeleteAd(e, ad.id)}>🗑️</button>
           )}
           <div dangerouslySetInnerHTML={{ __html: ad.code }} />
         </div>
       ))}
-      
+
       {isAdminMode && (
         <div style={{ textAlign: 'center', marginBottom: '10px' }}>
           <button className="btn" style={{ fontSize: '0.8rem', padding: '5px 10px' }} onClick={() => { setNewAdPosition('banner'); setShowAdModal(true); }}>+ Add Top Banner Ad</button>
@@ -170,7 +170,7 @@ export default function Home() {
       <div className={styles.headerRow}>
         <h1 className={styles.title}>Welcome Home</h1>
         {isAdmin && (
-          <button 
+          <button
             className={`${styles.adminToggleBtn} ${isAdminMode ? styles.active : ''}`}
             onClick={() => setIsAdminMode(!isAdminMode)}
           >
@@ -181,14 +181,13 @@ export default function Home() {
 
       <div className={styles.grid}>
         {loading && <div style={{ textAlign: 'center', width: '100%', padding: '20px' }}>Loading...</div>}
-        
+
         {!loading && links.length === 0 && isAdminMode && (
           <div style={{ textAlign: 'center', width: '100%', padding: '20px' }}>No links yet. Add one!</div>
         )}
 
         {links.map((link) => {
-          const isImageUrl = link.icon.startsWith('/') || link.icon.startsWith('http');
-          
+          const isImageUrl = link.icon.startsWith('/') || link.icon.startsWith('http') || link.icon.startsWith('data:image');
           const CardContent = (
             <>
               <div className={styles.iconWrapper}>
@@ -202,7 +201,7 @@ export default function Home() {
                 <h2 className={styles.cardTitle}>{link.title}</h2>
                 {link.desc && <p className={styles.cardDesc}>{link.desc}</p>}
               </div>
-              
+
               {isAdminMode && (
                 <div className={styles.adminActions}>
                   <button className={`${styles.iconBtn} ${styles.deleteBtn}`} onClick={(e) => handleDeleteLink(e, link.id)}>🗑️</button>
@@ -232,12 +231,12 @@ export default function Home() {
           + Add New Link
         </button>
       )}
-      
+
       {/* Dynamic Bottom Ads */}
       {bottomAds.map(ad => (
         <div key={ad.id} className={styles.adContainer} style={{ position: 'relative', marginTop: '30px' }}>
           {isAdminMode && (
-             <button className={`${styles.iconBtn} ${styles.deleteBtn}`} style={{ position: 'absolute', top: 5, right: 5, zIndex: 10, background: 'white' }} onClick={(e) => handleDeleteAd(e, ad.id)}>🗑️</button>
+            <button className={`${styles.iconBtn} ${styles.deleteBtn}`} style={{ position: 'absolute', top: 5, right: 5, zIndex: 10, background: 'white' }} onClick={(e) => handleDeleteAd(e, ad.id)}>🗑️</button>
           )}
           <div dangerouslySetInnerHTML={{ __html: ad.code }} />
         </div>
@@ -263,7 +262,7 @@ export default function Home() {
                 <label style={{ display: 'block', marginBottom: '5px' }}>URL</label>
                 <input type="text" required value={newUrl} onChange={e => setNewUrl(e.target.value)} className={styles.modalInput} />
               </div>
-              
+
               <div style={{ marginBottom: '10px' }}>
                 <label style={{ display: 'block', marginBottom: '5px' }}>Icon Type</label>
                 <select value={newIconType} onChange={e => setNewIconType(e.target.value)} className={styles.modalInput}>
