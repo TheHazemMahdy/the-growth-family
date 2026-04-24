@@ -1,3 +1,5 @@
+export const runtime = "nodejs";
+
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../auth/[...nextauth]/route';
@@ -24,24 +26,27 @@ export async function POST(request) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // Check file size
     if (buffer.length > MAX_FILE_SIZE) {
-      return NextResponse.json({ message: 'File too large. Maximum size is 2MB.' }, { status: 400 });
+      return NextResponse.json({ message: 'File too large (max 2MB)' }, { status: 400 });
     }
 
-    // Determine MIME type from file name or default to jpeg
     const ext = (file.name || '').split('.').pop()?.toLowerCase();
+
+    const allowed = ['png', 'jpg', 'jpeg', 'webp', 'gif'];
+    if (!allowed.includes(ext)) {
+      return NextResponse.json({ message: 'Invalid file type' }, { status: 400 });
+    }
+
     const mimeMap = {
-      'png': 'image/png',
-      'gif': 'image/gif',
-      'webp': 'image/webp',
-      'svg': 'image/svg+xml',
-      'jpg': 'image/jpeg',
-      'jpeg': 'image/jpeg',
+      png: 'image/png',
+      gif: 'image/gif',
+      webp: 'image/webp',
+      jpg: 'image/jpeg',
+      jpeg: 'image/jpeg',
     };
+
     const mimeType = mimeMap[ext] || 'image/jpeg';
 
-    // Convert to base64 data URL
     const base64 = buffer.toString('base64');
     const imageUrl = `data:${mimeType};base64,${base64}`;
 
@@ -53,9 +58,9 @@ export async function POST(request) {
     }
 
     return NextResponse.json({ imageUrl }, { status: 200 });
+
   } catch (error) {
     console.error(error);
     return NextResponse.json({ message: 'Upload failed' }, { status: 500 });
   }
 }
-
