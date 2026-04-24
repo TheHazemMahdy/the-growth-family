@@ -15,9 +15,8 @@ export default function Play() {
   const [submitted, setSubmitted] = useState(false);
   const requestRef = useRef();
 
-  // Game state refs (to avoid stale closures in requestAnimationFrame)
   const state = useRef({
-    player: { x: 175, y: 450, width: 30, height: 30, speed: 5, dx: 0 },
+    player: { x: 175, y: 450, width: 30, height: 30, speed: 5 },
     obstacles: [],
     score: 0,
     speedMultiplier: 1,
@@ -28,7 +27,7 @@ export default function Play() {
 
   const startGame = () => {
     state.current = {
-      player: { x: 185, y: 450, width: 30, height: 30, speed: 6, dx: 0 },
+      player: { x: 185, y: 450, width: 30, height: 30, speed: 6 },
       obstacles: [],
       score: 0,
       speedMultiplier: 1,
@@ -48,56 +47,48 @@ export default function Play() {
 
     const ctx = canvasRef.current.getContext('2d');
     const { player, obstacles } = state.current;
-    
-    // Clear canvas
+
     ctx.clearRect(0, 0, 400, 500);
 
-    // Update Player position
+    // ✅ Unified movement (desktop + mobile)
     if (state.current.keys.ArrowLeft && player.x > 0) {
       player.x -= player.speed;
     }
     if (state.current.keys.ArrowRight && player.x < 400 - player.width) {
       player.x += player.speed;
     }
-    
-    // Add touch movement logic (dx is set by touch events)
-    if (player.dx !== 0) {
-      player.x += player.dx;
-      // boundary checks
-      if (player.x < 0) player.x = 0;
-      if (player.x > 400 - player.width) player.x = 400 - player.width;
-    }
 
-    // Draw Player
-    ctx.fillStyle = '#5cb85c'; // Primary Green
+    // Draw player
+    ctx.fillStyle = '#5cb85c';
     ctx.shadowBlur = 10;
     ctx.shadowColor = '#5cb85c';
     ctx.fillRect(player.x, player.y, player.width, player.height);
     ctx.shadowBlur = 0;
 
-    // Obstacle logic
     state.current.frameCount++;
-    
-    // Increase difficulty
+
     if (state.current.frameCount % 300 === 0) {
       state.current.speedMultiplier += 0.2;
     }
 
-    // Spawn obstacles
     if (state.current.frameCount % Math.max(20, Math.floor(60 / state.current.speedMultiplier)) === 0) {
       const width = Math.random() * 40 + 20;
       const x = Math.random() * (400 - width);
-      obstacles.push({ x, y: -50, width, height: 20, speed: (Math.random() * 2 + 3) * state.current.speedMultiplier });
+      obstacles.push({
+        x,
+        y: -50,
+        width,
+        height: 20,
+        speed: (Math.random() * 2 + 3) * state.current.speedMultiplier
+      });
     }
 
-    // Update and draw obstacles
-    ctx.fillStyle = '#d9534f'; // Danger Red
+    ctx.fillStyle = '#d9534f';
     for (let i = 0; i < obstacles.length; i++) {
       let obs = obstacles[i];
       obs.y += obs.speed;
       ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
 
-      // Collision detection
       if (
         player.x < obs.x + obs.width &&
         player.x + player.width > obs.x &&
@@ -109,7 +100,6 @@ export default function Play() {
       }
     }
 
-    // Remove off-screen obstacles and increase score
     state.current.obstacles = obstacles.filter(obs => {
       if (obs.y > 500) {
         state.current.score += 10;
@@ -146,19 +136,23 @@ export default function Play() {
     };
   }, []);
 
-  // Touch controls logic
+  // ✅ FIXED touch controls (no dx anymore)
   const handleTouchStart = (e) => {
     const touchX = e.touches[0].clientX;
     const screenWidth = window.innerWidth;
+
     if (touchX < screenWidth / 2) {
-      state.current.player.dx = -state.current.player.speed;
+      state.current.keys.ArrowLeft = true;
+      state.current.keys.ArrowRight = false;
     } else {
-      state.current.player.dx = state.current.player.speed;
+      state.current.keys.ArrowRight = true;
+      state.current.keys.ArrowLeft = false;
     }
   };
 
   const handleTouchEnd = () => {
-    state.current.player.dx = 0;
+    state.current.keys.ArrowLeft = false;
+    state.current.keys.ArrowRight = false;
   };
 
   const submitScore = async () => {
@@ -166,7 +160,7 @@ export default function Play() {
       alert("Please login to submit your score!");
       return;
     }
-    
+
     setIsSubmitting(true);
     try {
       await fetch('/api/scores', {
@@ -194,21 +188,21 @@ export default function Play() {
         <div className={styles.score}>Score: {score}</div>
       </div>
 
-      <div 
+      <div
         className={styles.gameContainer}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
-        <canvas 
-          ref={canvasRef} 
-          width={400} 
-          height={500} 
+        <canvas
+          ref={canvasRef}
+          width={400}
+          height={500}
           className={styles.canvas}
         />
 
         {!gameStarted && !gameOver && (
           <div className={styles.overlay}>
-            <button className="btn btn-primary" onClick={startGame} style={{ fontSize: '1.5rem', padding: '16px 32px' }}>
+            <button className="btn btn-primary" onClick={startGame}>
               Tap to Start
             </button>
           </div>
@@ -216,39 +210,25 @@ export default function Play() {
 
         {gameOver && (
           <div className={styles.overlay}>
-            <h2 className={styles.gameOverTitle}>Game Over</h2>
-            <div className={styles.finalScore}>Final Score: {score}</div>
-            <div className={styles.btnGroup}>
-              <button className="btn btn-primary" onClick={startGame}>Restart</button>
-              
-              {!submitted ? (
-                <button 
-                  className="btn btn-primary" 
-                  style={{ backgroundColor: session ? '#f0ad4e' : '#ccc', color: '#fff' }} 
-                  onClick={submitScore}
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? 'Submitting...' : (session ? 'Submit Score' : 'Login to Submit')}
-                </button>
-              ) : (
-                <button className="btn" style={{ backgroundColor: '#5cb85c', color: '#fff' }} disabled>
-                  Submitted! ✓
-                </button>
-              )}
-            </div>
-            
-            {!session && (
-              <div style={{ marginTop: '15px', fontSize: '0.9rem', color: '#fff', textAlign: 'center' }}>
-                <Link href="/profile" style={{ color: '#f0ad4e', textDecoration: 'underline' }}>Login</Link> to save your score
-              </div>
+            <h2>Game Over</h2>
+            <p>Final Score: {score}</p>
+
+            <button className="btn btn-primary" onClick={startGame}>
+              Restart
+            </button>
+
+            {!submitted && (
+              <button onClick={submitScore}>
+                Submit Score
+              </button>
             )}
           </div>
         )}
       </div>
 
       <p className={styles.controlsHint}>
-        Desktop: Use ⬅️ ➡️ arrows<br/>
-        Mobile: Tap Left/Right sides of screen
+        Desktop: Arrow Keys<br />
+        Mobile: Tap Left / Right
       </p>
     </div>
   );
