@@ -1,6 +1,7 @@
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "../../../../lib/prisma";
+import bcrypt from "bcryptjs"; // ✅ ADD THIS
 
 export const authOptions = {
   providers: [
@@ -26,19 +27,19 @@ export const authOptions = {
             }
           });
 
-          // ❌ user not found
-          if (!user) {
+          if (!user || !user.password) {
             return null;
           }
 
-          // ❌ not verified
           if (!user.emailVerified) {
             return null;
           }
 
-          // 🔥 IMPORTANT FIX (no bcrypt for now)
-          const isPasswordValid =
-            credentials.password === user.password;
+          // ✅ CORRECT FIX (bcrypt)
+          const isPasswordValid = await bcrypt.compare(
+            credentials.password,
+            user.password
+          );
 
           if (!isPasswordValid) {
             return null;
